@@ -3,7 +3,7 @@ Python Full Page Cache Warmer
 
 ## Description
 
-Python cache warming tool used for warming full page cache solutions by visting pages in sitemap.xml 
+Python cache warming tool used for warming full page cache solutions by visting pages in sitemap.xml
 
 Has built-in support for concurrent threads, randomizing sort order, url parse delay, and more.
 
@@ -13,7 +13,7 @@ Tests has been performed on Wordpress, Magento 1 and 2.
 
 ### Step 1. Prerequisites
 
-`python3`  
+`python3`
 
 `pip3 install -r requirements.txt`
 
@@ -26,10 +26,12 @@ Tests has been performed on Wordpress, Magento 1 and 2.
 - `--limit`		Limit of urls to scan. (Default: None)
 - `--threads`   Number of concurrent threads to use (Default: 1)
 - `--timeout`   Request timeout. (Default: 10)
+- `--username`  Login username. (Default: None)
+- `--password`  Login password. (Default: None)
 - `-r`			Randomize order of url warming. (Default: False)
 - `-v`          Run in verbose mode. Will print output to terminal
 - `-s`			Run in silent mode. Redirects all output to /dev/null
 
 ## Usage
 
-`./pfpcw ( --site <url> | --sitemap <url to sitemap.xml> ) [--threads <int>] [--timeout <int>] [--delay <int>] [--limit <int>] [-v] [-s] [-r]`
+`./pfpcw ( --site <url> | --sitemap <url to sitemap.xml> ) [--threads <int>] [--timeout <int>] [--delay <int>] [--limit <int>] [--username <email> --password <password>] [-v] [-s] [-r]`
