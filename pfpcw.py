@@ -20,6 +20,7 @@ optional.add_argument('--site',     dest='site',    action='store',      default
 optional.add_argument('--delay',    dest='delay',   action='store',      default=0)
 optional.add_argument('--limit',    dest='limit',   action='store',      default=0)
 optional.add_argument('--threads',  dest='threads', action='store',      default=1)
+optional.add_argument('--timeout',  dest='timeout', action='store',      default=10)
 optional.add_argument('-r',         dest='random',  action='store_true', default=False)
 optional.add_argument('-v',         dest='verbose', action='store_true', default=False)
 optional.add_argument('-s',         dest='silent',  action='store_true', default=False)
@@ -41,6 +42,7 @@ class CacheWarmer:
             sitemap_url='',
             delay=0,
             threads=None,
+            timeout=None,
             verbose=False,
             silent=False,
             limit=None,
@@ -50,6 +52,7 @@ class CacheWarmer:
         self.sitemap_url = sitemap_url
         self.delay = delay
         self.threads = threads
+        self.timeout = timeout
         self.verbose = verbose
         self.silent = silent
         self.limit = limit
@@ -200,7 +203,7 @@ class CacheWarmer:
         """
         if self._validate_link(link):
             try:
-                response = requests.get(link, headers={"user-agent": "PFPCW cache warming script"})
+                response = requests.get(link, headers={"user-agent": "PFPCW cache warming script"}, timeout=self.timeout)
                 if response.ok is True:
                     content = ''
 
@@ -335,6 +338,7 @@ cache_warmer = CacheWarmer(
     sitemap_url=args.sitemap,
     delay=int(args.delay),
     threads=int(args.threads),
+    timeout=int(args.timeout),
     verbose=args.verbose,
     silent=args.silent,
     limit=int(args.limit),
