@@ -1,0 +1,6 @@
+[style]
+based_on_style = pep8
+continuation_align_style = valign-right
+column_limit = 120
+spaces_around_dict_delimiters = True
+split_before_first_argument = False

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import print_function
+from pydoc import describe
 import threading
 import requests
 import argparse
@@ -16,23 +17,76 @@ from urllib.parse import urlsplit
 
 from bs4 import BeautifulSoup
 
-
-parser = argparse.ArgumentParser(description='description')
-
+parser = argparse.ArgumentParser(
+    description=
+    '''Python cache warming tool used for warming full page cache solutions by visting pages in sitemap.xml''',
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 required = parser.add_argument_group('required arguments')
 
 optional = parser.add_argument_group('optional arguments')
-optional.add_argument('--sitemap',  dest='sitemap',  action='store',      default=None)
-optional.add_argument('--site',     dest='site',     action='store',      default=None)
-optional.add_argument('--delay',    dest='delay',    action='store',      default=0)
-optional.add_argument('--limit',    dest='limit',    action='store',      default=0)
-optional.add_argument('--threads',  dest='threads',  action='store',      default=1)
-optional.add_argument('--timeout',  dest='timeout', action='store',      default=10)
-optional.add_argument('--username', dest='username', action='store',      default=None, required='--password' in sys.argv)
-optional.add_argument('--password', dest='password', action='store',      default=None, required='--username' in sys.argv)
-optional.add_argument('-r',         dest='random',   action='store_true', default=False)
-optional.add_argument('-v',         dest='verbose',  action='store_true', default=False)
-optional.add_argument('-s',         dest='silent',   action='store_true', default=False)
+optional.add_argument('--sitemap',
+                        dest='sitemap',
+                        action='store',
+                        default=None,
+                        required='--site' not in sys.argv,
+                        metavar='url',
+                        help='Url to sitemap, exclusive to --site.')
+optional.add_argument('--site',
+                        dest='site',
+                        action='store',
+                        default=None,
+                        required='--sitemap' not in sys.argv,
+                        metavar='url',
+                        help='Url to site, exclusive to --sitemap.')
+optional.add_argument('--delay',
+                        dest='delay',
+                        action='store',
+                        default=0,
+                        metavar='int',
+                        help='Delay in seconds between url warming.')
+optional.add_argument('--limit',
+                        dest='limit',
+                        action='store',
+                        default=0,
+                        metavar='int',
+                        help='Number limit of urls to scan.')
+optional.add_argument('--threads',
+                        dest='threads',
+                        action='store',
+                        default=1,
+                        metavar='int',
+                        help='Number of concurrent threads to use.')
+optional.add_argument('--timeout',
+                        dest='timeout',
+                        action='store',
+                        default=10,
+                        metavar='int',
+                        help='Timeout limit for requests.')
+optional.add_argument('--username',
+                        dest='username',
+                        action='store',
+                        default=None,
+                        required='--password' in sys.argv,
+                        metavar='email',
+                        help='Login username.')
+optional.add_argument('--password',
+                        dest='password',
+                        action='store',
+                        default=None,
+                        required='--username' in sys.argv,
+                        metavar='password',
+                        help='Login password.')
+optional.add_argument('-r', dest='random', action='store_true', default=False, help='Randomize order of url warming.')
+optional.add_argument('-v',
+                        dest='verbose',
+                        action='store_true',
+                        default=False,
+                        help='Run in verbose mode. Will print output to terminal.')
+optional.add_argument('-s',
+                        dest='silent',
+                        action='store_true',
+                        default=False,
+                        help='Run in silent mode. Redirects all output to /dev/null.')
 
 args = parser.parse_args()
 
@@ -48,30 +102,30 @@ class CacheWarmer:
     total_download_time = 0
 
     def __init__(
-            self,
-            sitemap_url='',
-            delay=0,
-            threads=None,
-            timeout=None,
-            verbose=False,
-            silent=False,
-            limit=None,
-            random=False,
-            site=None,
-            username=None,
-            password=None,
+        self,
+        sitemap_url='',
+        site=None,
+        delay=0,
+        limit=None,
+        threads=None,
+        timeout=0,
+        username=None,
+        password=None,
+        random=False,
+        verbose=False,
+        silent=False,
     ):
         self.sitemap_url = sitemap_url
+        self.site = site
         self.delay = delay
+        self.limit = limit
         self.threads = threads
         self.timeout = timeout
-        self.verbose = verbose
-        self.silent = silent
-        self.limit = limit
-        self.random = random
-        self.site = site
         self.username = username
         self.password = password
+        self.random = random
+        self.verbose = verbose
+        self.silent = silent
 
         url_pieces = urlsplit(site or sitemap_url)
         self.scheme = url_pieces.scheme
@@ -162,13 +216,20 @@ class CacheWarmer:
         account_url = self.base_url + 'customer/account/'
         login_url = account_url + 'login/'
 
-        login_resp = self.reqs.get(login_url, headers={'user-agent': 'PFPCW cache warming script'}, timeout=self.timeout)
+        login_resp = self.reqs.get(
+            login_url,
+            headers={ "user-agent": "PFPCW cache warming script"},
+            timeout=self.timeout,
+        )
 
-        login_form = BeautifulSoup(login_resp.content, 'html.parser').find('form', {'id': 'login-form'})
+        login_bs = BeautifulSoup(login_resp.content, 'html.parser')
+        login_form = login_bs.find('form', { 'id': 'login-form'})
 
         login_form_url = login_form.get('action')
         login_form_method = login_form.get('method')
-        login_form_key = login_form.find('input', {'name': 'form_key'}).get('value')
+
+        login_form_key = login_form.find('input', { 'name': 'form_key'})
+        login_form_key = login_form_key.get('value')
 
         self.reqs.cookies.set('form_key', login_form_key)
 
@@ -197,8 +258,10 @@ class CacheWarmer:
                 print('    ' + k + ': ' + v, file=sys.stderr)
             sys.exit(1)
 
-        logged_username = BeautifulSoup(login_form_resp.content, 'html.parser').find('div', {'class': 'name-expand-wrapper'}).text.strip()
-        print("Logged in as '{}'\n".format(logged_username))
+        account_bs = BeautifulSoup(login_form_resp.content, 'html.parser')
+        account_name = account_bs.find('div', { 'class': 'name-expand-wrapper'})
+        account_name = account_name.text.strip()
+        print("Logged in as '{}'\n".format(account_name))
 
     def _run_post_test(self):
         old_avg_download_time = self._get_avg_load_time()
@@ -271,7 +334,9 @@ class CacheWarmer:
         """
         if self._validate_link(link):
             try:
-                response = self.reqs.get(link, headers={"user-agent": "PFPCW cache warming script"}, timeout=self.timeout)
+                response = self.reqs.get(link,
+                                            headers={ "user-agent": "PFPCW cache warming script"},
+                                            timeout=self.timeout)
                 if response.ok is True:
                     content = ''
 
@@ -281,8 +346,12 @@ class CacheWarmer:
                     if type(response.content) is bytes:
                         content = response.content.decode('utf-8')
 
-                    return {'code': 0 if response.ok else 1, 'url': link, 'content': content,
-                            'status_code': response.status_code}
+                    return {
+                        'code': 0 if response.ok else 1,
+                        'url': link,
+                        'content': content,
+                        'status_code': response.status_code
+                    }
             except Exception as e:
                 print(repr(e))
 
@@ -347,7 +416,10 @@ class CacheWarmer:
         """
         threads = []
         for i in range(self.threads):
-            t = threading.Thread(target=self._warm, args=(i, splits[i],))
+            t = threading.Thread(target=self._warm, args=(
+                i,
+                splits[i],
+            ))
             threads.append(t)
         return threads
 
@@ -387,11 +459,11 @@ class CacheWarmer:
                     self.load_times.append(time.time() - start_time)
 
                 if result['code'] is 1:
-                    self.url_err.append({'url': link, 'code': result['status_code']})
+                    self.url_err.append({ 'url': link, 'code': result['status_code'] })
 
                 if self.verbose:
                     print('({0}/{1}) {2} {3}'.format(self.progress, self.no_urls, '✓' if result['code'] is 0 else '×',
-                                                     link))
+                                                        link))
             except Exception:
                 if self.verbose:
                     print('Failed warming link: {0}'.format(link))
@@ -404,15 +476,15 @@ class CacheWarmer:
 
 cache_warmer = CacheWarmer(
     sitemap_url=args.sitemap,
+    site=args.site,
     delay=int(args.delay),
+    limit=int(args.limit),
     threads=int(args.threads),
     timeout=int(args.timeout),
-    verbose=args.verbose,
-    silent=args.silent,
-    limit=int(args.limit),
-    random=args.random,
-    site=args.site,
     username=args.username,
     password=args.password,
+    random=args.random,
+    verbose=args.verbose,
+    silent=args.silent,
 )
 cache_warmer.run()
