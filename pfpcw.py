@@ -76,6 +76,7 @@ optional.add_argument('--password',
                         required='--username' in sys.argv,
                         metavar='password',
                         help='Login password.')
+optional.add_argument('--header', '-H', dest='headers', action='append', default=[], help='Additional headers - additive')
 optional.add_argument('-r', dest='random', action='store_true', default=False, help='Randomize order of url warming.')
 optional.add_argument('-v',
                         dest='verbose',
@@ -111,6 +112,7 @@ class CacheWarmer:
         timeout=0,
         username=None,
         password=None,
+        headers=None,
         random=False,
         verbose=False,
         silent=False,
@@ -123,6 +125,7 @@ class CacheWarmer:
         self.timeout = timeout
         self.username = username
         self.password = password
+        self.headers = headers
         self.random = random
         self.verbose = verbose
         self.silent = silent
@@ -334,8 +337,18 @@ class CacheWarmer:
         """
         if self._validate_link(link):
             try:
+                headers = {}
+                if self.headers:
+                    for header in self.headers:
+                        pieces = header.split(':')
+                        if len(pieces) != 2:
+                            print('Error while parsing header "{}"'.format(header), file=sys.stderr)
+                            sys.exit(1)
+                        headers[pieces[0].strip()] = pieces[1].strip()
+                headers["user-agent"] = "PFPCW cache warming script"
+
                 response = self.reqs.get(link,
-                                            headers={ "user-agent": "PFPCW cache warming script"},
+                                            headers=headers,
                                             timeout=self.timeout)
                 if response.ok is True:
                     content = ''
@@ -483,6 +496,7 @@ cache_warmer = CacheWarmer(
     timeout=int(args.timeout),
     username=args.username,
     password=args.password,
+    headers=args.headers,
     random=args.random,
     verbose=args.verbose,
     silent=args.silent,
